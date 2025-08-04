@@ -9,7 +9,6 @@ pipeline {
   environment {
     DOCKER_IMAGE   = "kamran623/nodejs-app:${BUILD_NUMBER}"
     APP_DIR        = "nodejs-app"  // path to your Node.js app in repo
-  //MANIFEST_PATH  = "k8s-manifests/deployment.yaml"  // path to k8s manifest
     GIT_REPO_NAME  = "nodejs-k8s-app"
     GIT_USER_NAME  = "kamran90-web"
   }
