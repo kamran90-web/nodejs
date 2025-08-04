@@ -7,9 +7,9 @@ pipeline {
   }
 
   environment {
-    DOCKER_IMAGE   = "kamran623/nodejs-app:${BUILD_NUMBER}"
-    APP_DIR        = "nodejs-app"  // path to your Node.js app in repo
-    GIT_REPO_NAME  = "nodejs-k8s-app"
+    DOCKER_IMAGE   = "kamran623/node:14"
+    APP_DIR        = "nodejs/src"  // path to your Node.js app in repo
+    GIT_REPO_NAME  = "nodejs"
     GIT_USER_NAME  = "kamran90-web"
   }
 
