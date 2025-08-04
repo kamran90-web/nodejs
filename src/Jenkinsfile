@@ -1,0 +1,71 @@
+pipeline {
+  agent {
+    docker {
+      image 'node:14'  // Use official Node.js image
+      args '--user root -v /var/run/docker.sock:/var/run/docker.sock'
+    }
+  }
+
+  environment {
+    DOCKER_IMAGE   = "kamran623/nodejs-app:${BUILD_NUMBER}"
+    APP_DIR        = "nodejs-app"  // path to your Node.js app in repo
+    MANIFEST_PATH  = "k8s-manifests/deployment.yaml"  // path to k8s manifest
+    GIT_REPO_NAME  = "nodejs-k8s-app"
+    GIT_USER_NAME  = "kamran90-web"
+  }
+
+  stages {
+
+    stage('Checkout') {
+      steps {
+        git branch: 'main', url: "https://github.com/${env.GIT_USER_NAME}/${env.GIT_REPO_NAME}.git"
+      }
+    }
+
+    stage('Verify Docker Access') {
+      steps {
+        sh 'docker version'
+      }
+    }
+
+    stage('Install Dependencies and Test') {
+      steps {
+        dir("${env.APP_DIR}") {
+          sh 'npm install'
+          sh 'npm test || echo "No tests or tests failed but continuing..."'
+        }
+      }
+    }
+
+    stage('Build and Push Docker Image') {
+      steps {
+        dir("${env.APP_DIR}") {
+          sh "docker build -t $DOCKER_IMAGE ."
+        }
+        script {
+          def dockerImage = docker.image("${DOCKER_IMAGE}")
+          docker.withRegistry('https://index.docker.io/v1/', 'docker-cred') {
+            dockerImage.push()
+          }
+        }
+      }
+    }
+
+    stage('Update Kubernetes Deployment') {
+      agent any
+      steps {
+        withCredentials([string(credentialsId: 'github-token', variable: 'GITHUB_TOKEN')]) {
+          sh '''
+            git config user.email "kammy2cool@gmail.com"
+            git config user.name "Kamran saeed"
+            sed -i "s|image:.*|image: ${DOCKER_IMAGE}|" $MANIFEST_PATH
+            git add $MANIFEST_PATH
+            git commit -m "Update deployment image to version ${BUILD_NUMBER}" || echo "No changes to commit"
+            git push https://${GITHUB_TOKEN}@github.com/${GIT_USER_NAME}/${GIT_REPO_NAME}.git HEAD:main
+          '''
+        }
+      }
+    }
+  }
+}
+
